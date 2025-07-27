@@ -19,21 +19,27 @@ jobs:
           )
 
           webhook="https://discord.com/api/webhooks/1398977090942144614/LKCSO37xoWiyTYK232I8qWe2JFxWb85u2DkLvCK8yK3LzWiXfa8xHgET9R3PE8xcK7x_"
-          
-          # Đặt múi giờ Việt Nam
+
           now=$(TZ='Asia/Ho_Chi_Minh' date '+%H:%M:%S - %d/%m/%Y')
+          message=""
 
           for url in "${urls[@]}"; do
             echo "\n--> Đang ping: $url"
             status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$url")
 
+            # Định dạng dòng kết quả: pad URL để mỗi dòng có cùng độ dài
             if [[ "$status" == "200" ]]; then
-              message="\u2705 Ping $url with status $status => Thành công ($now)."
+              formatted=$(printf "✅ Ping %-50s => Thành công (%s)." "$url" "$now")
             else
-              message="\u274C Ping $url with status $status => Thất bại ($now)."
+              formatted=$(printf "❌ Ping %-50s => Thất bại  (%s)." "$url" "$now")
             fi
 
-            echo "$message"
-            curl -s -X POST -H 'Content-type: application/json' \
-              --data "{\"content\": \"$message\"}" "$webhook"
+            message+="$formatted\n"
           done
+
+          message+="---------------------------------------------------------------------\n"
+
+          echo -e "$message"
+
+          curl -s -X POST -H 'Content-type: application/json' \
+            --data "{\"content\": \"$message\"}" "$webhook"
