@@ -27,17 +27,16 @@ jobs:
             echo "\n--> Đang ping: $url"
             status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$url")
 
-            # Định dạng dòng kết quả: pad URL để mỗi dòng có cùng độ dài
             if [[ "$status" == "200" ]]; then
-              formatted=$(printf "✅ Ping %-50s => Thành công (%s)." "$url" "$now")
+              formatted=$(printf "✅ Ping %-60s => Thành công (%s)." "$url" "$now")
             else
-              formatted=$(printf "❌ Ping %-50s => Thất bại  (%s)." "$url" "$now")
+              formatted=$(printf "❌ Ping %-60s => Thất bại  (%s)." "$url" "$now")
             fi
 
             message+="$formatted\n"
           done
 
-          message+="---------------------------------------------------------------------\n"
+          message+="--------------------------------------------------------------------------------\n"
 
           echo -e "$message"
 
