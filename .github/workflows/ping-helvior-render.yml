@@ -1,4 +1,4 @@
-name: Keep Render Alive
+name: Keep RenderServer Helvior Alive
 
 on:
   schedule:
@@ -28,15 +28,19 @@ jobs:
             status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$url")
 
             if [[ "$status" == "200" ]]; then
-              formatted=$(printf "✅ Ping %-60s => Thành công (%s)." "$url" "$now")
+              statusText="Thành công"
+              emoji="✅"
             else
-              formatted=$(printf "❌ Ping %-60s => Thất bại  (%s)." "$url" "$now")
+              statusText="Thất bại "
+              emoji="❌"
             fi
 
+            # Căn URL trái 45 ký tự, dùng <> để ngăn preview, suppress embed
+            formatted=$(printf "%s Ping %-45s => %s (%s)." "$emoji" "<$url>" "$statusText" "$now")
             message+="$formatted\n"
           done
 
-          message+="--------------------------------------------------------------------------------\n"
+          message+="---------------------------------------------------------------------"
 
           echo -e "$message"
 
