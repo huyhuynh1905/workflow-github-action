@@ -12,14 +12,16 @@ jobs:
       - name: Ping Helvior Services
         run: |
           echo "\n==> Bắt đầu kiểm tra hai endpoint..."
-          
+
           urls=(
             "https://helvior.io.vn/"
             "https://helvior-server.onrender.com/"
           )
 
           webhook="https://discord.com/api/webhooks/1398977090942144614/LKCSO37xoWiyTYK232I8qWe2JFxWb85u2DkLvCK8yK3LzWiXfa8xHgET9R3PE8xcK7x_"
-          now=$(date '+%H:%M:%S - %d/%m/%Y')
+          
+          # Đặt múi giờ Việt Nam
+          now=$(TZ='Asia/Ho_Chi_Minh' date '+%H:%M:%S - %d/%m/%Y')
 
           for url in "${urls[@]}"; do
             echo "\n--> Đang ping: $url"
