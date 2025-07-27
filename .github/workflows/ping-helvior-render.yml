@@ -41,4 +41,4 @@ jobs:
           echo -e "$message"
 
           curl -s -X POST -H 'Content-type: application/json' \
-            --data "{\"content\": \"$message\"}" "$webhook"
+            --data "{\"content\": \"$message\", \"flags\": 4096}" "$webhook"
