@@ -8,3 +8,6 @@ crons = ["*/10 * * * *"]
 
 [vars]
 DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1399077097657471076/Ca5OhWO6L2GkcLqUI11sRSEA7lC-ACz6HlWHsiuc3iWU-PyKddkO9XX2TIRBJcmSxEHZ"
+
+[observability.logs]
+enabled = true
