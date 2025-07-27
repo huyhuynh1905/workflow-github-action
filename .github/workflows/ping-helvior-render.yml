@@ -1,0 +1,37 @@
+name: Keep Render Alive
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"  # Chạy mỗi 10 phút
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Helvior Services
+        run: |
+          echo "\n==> Bắt đầu kiểm tra hai endpoint..."
+          
+          urls=(
+            "https://helvior.io.vn/"
+            "https://helvior-server.onrender.com/"
+          )
+
+          webhook="https://discord.com/api/webhooks/1398977090942144614/LKCSO37xoWiyTYK232I8qWe2JFxWb85u2DkLvCK8yK3LzWiXfa8xHgET9R3PE8xcK7x_"
+          now=$(date '+%H:%M:%S - %d/%m/%Y')
+
+          for url in "${urls[@]}"; do
+            echo "\n--> Đang ping: $url"
+            status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$url")
+
+            if [[ "$status" == "200" ]]; then
+              message="\u2705 Ping $url with status $status => Thành công ($now)."
+            else
+              message="\u274C Ping $url with status $status => Thất bại ($now)."
+            fi
+
+            echo "$message"
+            curl -s -X POST -H 'Content-type: application/json' \
+              --data "{\"content\": \"$message\"}" "$webhook"
+          done
