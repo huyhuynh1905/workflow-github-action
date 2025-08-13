@@ -9,40 +9,70 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Helvior Services
+      - name: Ping endpoints
+        id: ping
         run: |
-          echo "\n==> Bắt đầu kiểm tra hai endpoint..."
-
+          set +e  # Cho phép lệnh fail nhưng script vẫn tiếp tục
+          
           urls=(
             "https://helvior.io.vn/"
             "https://helvior-server.onrender.com/"
           )
 
-          webhook="https://discord.com/api/webhooks/1398977090942144614/LKCSO37xoWiyTYK232I8qWe2JFxWb85u2DkLvCK8yK3LzWiXfa8xHgET9R3PE8xcK7x_"
-
           now=$(TZ='Asia/Ho_Chi_Minh' date '+%H:%M:%S - %d/%m/%Y')
-          message=""
+          embed_description=""
+          overall_status="success"
 
           for url in "${urls[@]}"; do
-            echo "\n--> Đang ping: $url"
+            echo "--> Đang ping: $url"
             status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$url")
-
             if [[ "$status" == "200" ]]; then
-              statusText="Thành công"
-              emoji="✅"
+              emoji="✅"; statusText="Thành công"
             else
-              statusText="Thất bại "
-              emoji="❌"
+              emoji="❌"; statusText="Thất bại"
+              overall_status="fail"
             fi
-
-            # Căn URL trái 45 ký tự, dùng <> để ngăn preview, suppress embed
-            formatted=$(printf "%s Ping %-45s => %s (%s)." "$emoji" "<$url>" "$statusText" "$now")
-            message+="$formatted\n"
+            embed_description+=$(printf "%s **%-45s** → %s (%s)\\n" "$emoji" "$url" "$statusText" "$now")
           done
 
-          message+="---------------------------------------------------------------------"
+          echo "status=$overall_status" >> $GITHUB_OUTPUT
+          echo "description<<EOF" >> $GITHUB_OUTPUT
+          echo "$embed_description" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
-          echo -e "$message"
+      - name: Send Discord webhook (Embed)
+        if: always()  # Luôn gửi dù pass hay fail
+        run: |
+          webhook="https://discord.com/api/webhooks/1398977090942144614/LKCSO37xoWiyTYK232I8qWe2JFxWb85u2DkLvCK8yK3LzWiXfa8xHgET9R3PE8xcK7x_"
+          description="${{ steps.ping.outputs.description }}"
+          status="${{ steps.ping.outputs.status }}"
+          now=$(TZ='Asia/Ho_Chi_Minh' date '+%Y-%m-%dT%H:%M:%S%z')
 
-          curl -s -X POST -H 'Content-type: application/json' \
-            --data "{\"content\": \"$message\", \"flags\": 4096}" "$webhook"
+          if [ "$status" = "success" ]; then
+            color=3066993   # Màu xanh lá
+            title="✅ Tất cả endpoint đều hoạt động"
+          else
+            color=15158332  # Màu đỏ
+            title="❌ Một số endpoint bị lỗi"
+          fi
+
+          # Tạo payload JSON với Embed
+          json_payload=$(jq -n \
+            --arg title "$title" \
+            --arg description "$description" \
+            --arg now "$now" \
+            --argjson color "$color" \
+            '{
+              embeds: [
+                {
+                  title: $title,
+                  description: $description,
+                  color: $color,
+                  timestamp: $now
+                }
+              ]
+            }'
+          )
+
+          curl -s -X POST -H "Content-Type: application/json" \
+            -d "$json_payload" "$webhook"
