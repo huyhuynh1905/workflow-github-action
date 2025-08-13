@@ -20,7 +20,7 @@ jobs:
           )
 
           now=$(TZ='Asia/Ho_Chi_Minh' date '+%H:%M:%S - %d/%m/%Y')
-          embed_description=""
+          fields_json="[]"
           overall_status="success"
 
           for url in "${urls[@]}"; do
@@ -32,19 +32,28 @@ jobs:
               emoji="❌"; statusText="Thất bại"
               overall_status="fail"
             fi
-            embed_description+=$(printf "%s **%-45s** → %s (%s)\\n" "$emoji" "$url" "$statusText" "$now")
+
+            # Tạo field cho embed
+            field=$(jq -n \
+              --arg name "$emoji $url" \
+              --arg value "$statusText ($now)" \
+              '{name: $name, value: $value, inline: false}'
+            )
+
+            # Gộp vào mảng fields
+            fields_json=$(jq --argjson f "$field" '. + [$f]' <<< "$fields_json")
           done
 
           echo "status=$overall_status" >> $GITHUB_OUTPUT
-          echo "description<<EOF" >> $GITHUB_OUTPUT
-          echo "$embed_description" >> $GITHUB_OUTPUT
+          echo "fields<<EOF" >> $GITHUB_OUTPUT
+          echo "$fields_json" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Send Discord webhook (Embed)
+      - name: Send Discord webhook (Embed với fields)
         if: always()  # Luôn gửi dù pass hay fail
         run: |
           webhook="https://discord.com/api/webhooks/1398977090942144614/LKCSO37xoWiyTYK232I8qWe2JFxWb85u2DkLvCK8yK3LzWiXfa8xHgET9R3PE8xcK7x_"
-          description="${{ steps.ping.outputs.description }}"
+          fields='${{ steps.ping.outputs.fields }}'
           status="${{ steps.ping.outputs.status }}"
           now=$(TZ='Asia/Ho_Chi_Minh' date '+%Y-%m-%dT%H:%M:%S%z')
 
@@ -56,19 +65,18 @@ jobs:
             title="❌ Một số endpoint bị lỗi"
           fi
 
-          # Tạo payload JSON với Embed
           json_payload=$(jq -n \
             --arg title "$title" \
-            --arg description "$description" \
             --arg now "$now" \
             --argjson color "$color" \
+            --argjson fields "$fields" \
             '{
               embeds: [
                 {
                   title: $title,
-                  description: $description,
                   color: $color,
-                  timestamp: $now
+                  timestamp: $now,
+                  fields: $fields
                 }
               ]
             }'
