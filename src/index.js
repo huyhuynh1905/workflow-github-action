@@ -35,7 +35,7 @@ async function runPing(env, sendToDiscord) {
 
   for (const url of urls) {
     try {
-      const res = await fetch(url, { timeout: 20000 });
+      const res = await fetch(url);
       const status = res.status;
 
       if (status === 200) {
