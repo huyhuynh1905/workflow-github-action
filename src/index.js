@@ -1,8 +1,7 @@
-let lastSentAt = 0; // thời gian lần gửi gần nhất (millisecond)
-
 export default {
   async scheduled(event, env, ctx) {
-    await pingAndSend(env, true);
+    // ❗ Cron KHÔNG BAO GIỜ throw
+    ctx.waitUntil(runPing(env, true));
   },
 
   async fetch(request, env, ctx) {
@@ -11,32 +10,42 @@ export default {
       return new Response("Ignored", { status: 204 });
     }
 
-    const result = await pingAndSend(env, true);
-    return new Response(result, { status: 200 });
+    // HTTP chỉ dùng để test thủ công, KHÔNG gửi Discord
+    try {
+      const result = await runPing(env, false);
+      return new Response(result, { status: 200 });
+    } catch {
+      return new Response("Error", { status: 200 });
+    }
   }
 };
 
-async function pingAndSend(env, sendToDiscord = true) {
+async function runPing(env, sendToDiscord) {
   const urls = [
     "https://helvior.io.vn/",
     "https://helvior-server.onrender.com/"
   ];
 
-  const now = new Date();
-  const nowVN = now.toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" });
+  const nowVN = new Date().toLocaleString("vi-VN", {
+    timeZone: "Asia/Ho_Chi_Minh"
+  });
+
   const lines = [];
+  let hasError = false;
 
   for (const url of urls) {
     try {
-      const res = await fetch(url);
+      const res = await fetch(url, { timeout: 8000 });
       const status = res.status;
 
       if (status === 200) {
         lines.push(`🟢 \`${url}\` — Thành công`);
       } else {
+        hasError = true;
         lines.push(`🔴 \`${url}\` — Lỗi ${status}`);
       }
     } catch {
+      hasError = true;
       lines.push(`🔴 \`${url}\` — Không kết nối`);
     }
   }
@@ -44,15 +53,20 @@ async function pingAndSend(env, sendToDiscord = true) {
   const embed = {
     title: "📡 Helvior Ping Report",
     description: lines.join("\n"),
-    color: lines.some(l => l.includes("🔴")) ? 0xff0000 : 0x00cc99,
+    color: hasError ? 0xff0000 : 0x00cc99,
     footer: { text: `Thời gian: ${nowVN}` }
   };
 
-  // ⛔ Nếu đã gửi gần đây trong 2 phút thì bỏ qua
-  const diff = Date.now() - lastSentAt;
-  if (sendToDiscord && diff >= 2 * 60 * 1000) {
-    lastSentAt = Date.now(); // Cập nhật thời điểm đã gửi
+  if (sendToDiscord) {
+    await safeSendDiscord(env, embed);
+  }
 
+  return lines.join("\n");
+}
+
+// ❗ TUYỆT ĐỐI KHÔNG throw
+async function safeSendDiscord(env, embed) {
+  try {
     const res = await fetch(env.DISCORD_WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -60,9 +74,7 @@ async function pingAndSend(env, sendToDiscord = true) {
     });
 
     console.log("✅ Discord response:", res.status);
-  } else {
-    console.log(`⏳ Đã gửi trong ${Math.floor(diff / 1000)} giây gần nhất → không gửi lại`);
+  } catch (e) {
+    console.log("❌ Discord send failed:", e?.message);
   }
-
-  return lines.join("\n");
 }

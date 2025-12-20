@@ -1,7 +1,7 @@
 name = "helvior-ping-by-git"
 main = "src/index.js"
 compatibility_date = "2025-07-27"
-workers_dev = true
+workers_dev = false
 
 [triggers]
 crons = ["*/10 * * * *"]
