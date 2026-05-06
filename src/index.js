@@ -1,7 +1,9 @@
 export default {
   async scheduled(event, env, ctx) {
     // ❗ Cron KHÔNG BAO GIỜ throw
-    ctx.waitUntil(runPing(env, true));
+    await runPing(env, true);
+
+    // ctx.waitUntil(runPing(env, true));
   },
 
   async fetch(request, env, ctx) {
@@ -23,7 +25,7 @@ export default {
 async function runPing(env, sendToDiscord) {
   const urls = [
     "https://helvior.io.vn/",
-    "https://helvior-server.onrender.com/"
+    "https://n8n.helvior.io.vn/"
   ];
 
   const nowVN = new Date().toLocaleString("vi-VN", {

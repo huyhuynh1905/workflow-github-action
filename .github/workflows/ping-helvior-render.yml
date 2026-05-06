@@ -16,7 +16,7 @@ jobs:
           
           urls=(
             "https://helvior.io.vn/"
-            "https://helvior-server.onrender.com/"
+            "https://n8n.helvior.io.vn/"
           )
 
           now=$(TZ='Asia/Ho_Chi_Minh' date '+%H:%M:%S - %d/%m/%Y')
